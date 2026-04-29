@@ -7,8 +7,10 @@ from app.api import (
     claims_router,
     patients_router,
     providers_router,
-    documents_router
+    documents_router,
+    reports_router
 )
+from app.middleware.audit import AuditLoggingMiddleware
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -24,12 +26,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(AuditLoggingMiddleware)
+
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(users_router, prefix=settings.API_V1_STR)
 app.include_router(claims_router, prefix=settings.API_V1_STR)
 app.include_router(patients_router, prefix=settings.API_V1_STR)
 app.include_router(providers_router, prefix=settings.API_V1_STR)
 app.include_router(documents_router, prefix=settings.API_V1_STR)
+app.include_router(reports_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")

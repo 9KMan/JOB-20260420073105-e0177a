@@ -34,11 +34,26 @@ export function LoginForm() {
     try {
       setError('');
       const { access_token } = await authApi.login(data);
-      setAuth({ id: 0, email: data.email, full_name: '', role: 'viewer', is_active: true, is_verified: false, created_at: '' } as any, access_token);
+      // Fetch user info after successful login
+      try {
+        const user = await authApi.getMe();
+        setAuth(user, access_token);
+      } catch {
+        // Fallback if getMe fails
+        setAuth({ id: 0, email: data.email, full_name: '', role: 'viewer', is_active: true, is_verified: false, created_at: '' } as any, access_token);
+      }
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Login failed');
     }
+  };
+
+  const handleGoogleLogin = () => {
+    alert('Google OAuth coming soon! Please use email/password login.');
+  };
+
+  const handleMicrosoftLogin = () => {
+    alert('Microsoft OAuth coming soon! Please use email/password login.');
   };
 
   return (
@@ -65,6 +80,24 @@ export function LoginForm() {
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Signing in...' : 'Sign In'}
           </Button>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button type="button" variant="outline" onClick={handleGoogleLogin} disabled>
+              Google (Soon)
+            </Button>
+            <Button type="button" variant="outline" onClick={handleMicrosoftLogin} disabled>
+              Microsoft (Soon)
+            </Button>
+          </div>
         </form>
       </CardContent>
       <CardFooter className="justify-center">

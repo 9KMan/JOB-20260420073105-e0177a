@@ -25,6 +25,7 @@ class Claim(Base):
     id = Column(Integer, primary_key=True, index=True)
     claim_number = Column(String(50), unique=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
     provider_id = Column(Integer, ForeignKey("providers.id"), nullable=False)
 
@@ -34,6 +35,7 @@ class Claim(Base):
     service_date = Column(DateTime)
     submission_date = Column(DateTime)
     amount = Column(Numeric(10, 2))
+    paid_amount = Column(Numeric(10, 2), default=0)
 
     diagnosis_codes = Column(Text)
     procedure_codes = Column(Text)
@@ -43,11 +45,15 @@ class Claim(Base):
 
     notes = Column(Text)
     rejection_reason = Column(Text)
+    edi_837_content = Column(Text)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="claims")
+    organization = relationship("Organization")
     patient = relationship("Patient", back_populates="claims")
     provider = relationship("Provider", back_populates="claims")
     documents = relationship("Document", back_populates="claim")
+    service_lines = relationship("ClaimServiceLine", back_populates="claim")
+    payments = relationship("Payment", back_populates="claim")

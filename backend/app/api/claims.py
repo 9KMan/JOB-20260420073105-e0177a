@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
+from decimal import Decimal
 import uuid
 from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.claim import Claim, ClaimStatus
+from app.models.payment import Payment
 from app.schemas.claim import ClaimCreate, ClaimUpdate, ClaimResponse
 from app.api.auth import get_current_user
 
@@ -130,3 +132,67 @@ def delete_claim(
     db.delete(claim)
     db.commit()
     return {"message": "Claim deleted successfully"}
+
+
+@router.get("/{claim_id}/payments", response_model=List[dict])
+def list_claim_payments(
+    claim_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List all payments for a specific claim"""
+    claim = db.query(Claim).filter(Claim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found")
+
+    payments = db.query(Payment).filter(Payment.claim_id == claim_id).all()
+    return [
+        {
+            "id": p.id,
+            "amount": float(p.amount),
+            "payment_date": p.payment_date.isoformat() if p.payment_date else None,
+            "payment_method": p.payment_method,
+            "reference_number": p.reference_number,
+            "era_eob_id": p.era_eob_id,
+            "notes": p.notes
+        }
+        for p in payments
+    ]
+
+
+@router.post("/{claim_id}/payments")
+def create_payment(
+    claim_id: int,
+    payment_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Post a payment to a claim"""
+    claim = db.query(Claim).filter(Claim.id == claim_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found")
+
+    amount = Decimal(str(payment_data.get("amount", 0)))
+    payment = Payment(
+        claim_id=claim_id,
+        amount=amount,
+        payment_date=datetime.utcnow(),
+        payment_method=payment_data.get("payment_method"),
+        reference_number=payment_data.get("reference_number"),
+        era_eob_id=payment_data.get("era_eob_id"),
+        notes=payment_data.get("notes")
+    )
+    db.add(payment)
+
+    # Update claim paid amount and status
+    claim.paid_amount = (claim.paid_amount or Decimal("0")) + amount
+    if claim.paid_amount >= claim.amount:
+        claim.status = ClaimStatus.PAID
+
+    db.commit()
+    db.refresh(payment)
+    return {
+        "id": payment.id,
+        "amount": float(payment.amount),
+        "message": "Payment posted successfully"
+    }

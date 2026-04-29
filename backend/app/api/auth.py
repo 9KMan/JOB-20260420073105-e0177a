@@ -65,6 +65,71 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@router.post("/refresh", response_model=Token)
+def refresh_token(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """Refresh access token"""
+    payload = decode_access_token(token)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    user_id = payload.get("sub")
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Invalid user")
+
+    access_token = create_access_token(
+        data={"sub": str(user.id), "role": user.role.value},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
 @router.get("/me", response_model=UserResponse)
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/mfa/enable")
+def enable_mfa(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Enable MFA for the current user"""
+    if current_user.mfa_enabled:
+        raise HTTPException(status_code=400, detail="MFA already enabled")
+
+    current_user.mfa_enabled = True
+    db.commit()
+    return {"message": "MFA enabled successfully", "mfa_enabled": True}
+
+
+@router.post("/mfa/verify")
+def verify_mfa(
+    code: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Verify MFA code (placeholder - real implementation would use TOTP)"""
+    # In production, this would verify a TOTP code
+    if not current_user.mfa_enabled:
+        raise HTTPException(status_code=400, detail="MFA not enabled")
+
+    # Placeholder: accept any 6-digit code for demo purposes
+    if len(code) != 6 or not code.isdigit():
+        raise HTTPException(status_code=400, detail="Invalid MFA code")
+
+    return {"verified": True}
+
+
+@router.post("/oauth/google")
+def google_oauth(code: str, db: Session = Depends(get_db)):
+    """Google OAuth callback (placeholder)"""
+    # In production, this would exchange code for tokens and get user info
+    raise HTTPException(status_code=501, detail="Google OAuth not yet implemented")
+
+
+@router.post("/oauth/microsoft")
+def microsoft_oauth(code: str, db: Session = Depends(get_db)):
+    """Microsoft OAuth callback (placeholder)"""
+    # In production, this would exchange code for tokens and get user info
+    raise HTTPException(status_code=501, detail="Microsoft OAuth not yet implemented")

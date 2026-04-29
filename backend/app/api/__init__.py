@@ -4,6 +4,7 @@ from app.api.claims import router as claims_router
 from app.api.patients import router as patients_router
 from app.api.providers import router as providers_router
 from app.api.documents import router as documents_router
+from app.api.reports import router as reports_router
 
 __all__ = [
     "auth_router",
@@ -11,5 +12,6 @@ __all__ = [
     "claims_router",
     "patients_router",
     "providers_router",
-    "documents_router"
+    "documents_router",
+    "reports_router"
 ]

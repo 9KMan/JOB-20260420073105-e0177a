@@ -12,6 +12,8 @@ const navigation = [
   { name: 'Claims', href: '/claims' },
   { name: 'Patients', href: '/patients' },
   { name: 'Providers', href: '/providers' },
+  { name: 'Billing', href: '/billing' },
+  { name: 'Reports', href: '/reports' },
 ];
 
 export function Sidebar() {

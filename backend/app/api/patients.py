@@ -4,6 +4,7 @@ from typing import List, Optional
 from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.patient import Patient
+from app.models.claim import Claim
 from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse
 from app.api.auth import get_current_user
 
@@ -113,3 +114,20 @@ def delete_patient(
     db.delete(patient)
     db.commit()
     return {"message": "Patient deleted successfully"}
+
+
+@router.get("/{patient_id}/claims")
+def get_patient_claims(
+    patient_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all claims for a specific patient"""
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    if current_user.role != UserRole.ADMIN and patient.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this patient")
+
+    claims = db.query(Claim).filter(Claim.patient_id == patient_id).all()
+    return claims

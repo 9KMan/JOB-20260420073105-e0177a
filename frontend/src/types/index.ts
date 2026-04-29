@@ -2,11 +2,13 @@ export interface User {
   id: number;
   email: string;
   full_name: string;
-  role: 'admin' | 'provider' | 'biller' | 'viewer';
+  role: 'admin' | 'provider' | 'biller' | 'staff' | 'viewer';
+  organization_id?: number;
   organization_name?: string;
   npi?: string;
   is_active: boolean;
   is_verified: boolean;
+  mfa_enabled?: boolean;
   created_at: string;
 }
 
